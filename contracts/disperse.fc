@@ -8,6 +8,7 @@ const op::add_jetton_wallet = "op::add_jetton_wallet"c;
 const op::transfer = "op::transfer"c;
 const op::transfer_jetton = "op::transfer_jetton"c;
 
+global slice ctx_owner_addr;
 global slice ctx_src_jetton_wallet_addr;
 global int ctx_dest_wallet_count;
 global cell ctx_dest_wallet_addr_dict;
@@ -18,10 +19,11 @@ global cell ctx_dest_jetton_wallet_addr_dict;
     ~strdump("Start save_data()");
     set_data(
         begin_cell()
+            .store_slice(ctx_owner_addr)
             .store_slice(ctx_src_jetton_wallet_addr)
-            .store_uint(ctx_dest_wallet_count)
+            .store_uint(ctx_dest_wallet_count, 32)
             .store_ref(ctx_dest_wallet_addr_dict)
-            .store_uint(ctx_dest_jetton_wallet_count)
+            .store_uint(ctx_dest_jetton_wallet_count, 32)
             .store_ref(ctx_dest_jetton_wallet_addr_dict)
         .end_cell()
     );
@@ -32,6 +34,7 @@ global cell ctx_dest_jetton_wallet_addr_dict;
 
     slice ds = get_data().begin_parse();
 
+    ctx_owner_addr = ds~load_msg_addr();
     ctx_src_jetton_wallet_addr = ds~load_msg_addr();
 
     if (ds.slice_empty?()) { ;; ignore all empty messages
@@ -85,7 +88,7 @@ global cell ctx_dest_jetton_wallet_addr_dict;
         
         slice new_wallet_addr = in_msg_body~load_msg_addr();
 
-        (key, _, success?) = ctx_dest_wallet_addr_dict.udict_get_max?(32, key);
+        (int key, _, int success?) = ctx_dest_wallet_addr_dict.udict_get_max?(32);
         ctx_dest_wallet_addr_dict.udict_add?(32, key, new_wallet_addr);
         ctx_dest_wallet_count = ctx_dest_wallet_count + 1;
         
@@ -103,7 +106,22 @@ global cell ctx_dest_jetton_wallet_addr_dict;
 
 }
 
-cell get_wallets() method_id {
+slice get_owner_addr() method_id {
+    load_data();
+    return ctx_owner_addr;
+}
+
+int get_wallet_count() method_id {
+    load_data();
+    return ctx_dest_wallet_count;
+}
+
+tuple get_wallets() method_id {
     load_data();
     return ctx_dest_wallet_addr_dict;
+}
+
+int get_jetton_wallet_count() method_id {
+    load_data();
+    return ctx_dest_jetton_wallet_count;
 }
