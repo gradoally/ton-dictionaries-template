@@ -1,5 +1,5 @@
 import { Blockchain, SandboxContract, TreasuryContract } from '@ton/sandbox';
-import { Cell, toNano, fromNano } from '@ton/core';
+import { Cell, toNano, fromNano, Dictionary } from '@ton/core';
 import { Disperse } from '../wrappers/Disperse';
 import '@ton/test-utils';
 import { compile } from '@ton/blueprint';
@@ -56,8 +56,6 @@ describe('Disperse', () => {
 
         // let i = 0;
         for (let i = 0; i < wallet_arr.length; i++) {     
-            const walletCountBefore = await disperseContract.getWalletCount();
-            console.log(`wallet account before adding: ${walletCountBefore}`);
 
             console.log(`adding ${wallet_arr[i].address}`);
             const addResult = await disperseContract.sendAddWallet(deployer.getSender(), {
@@ -71,16 +69,15 @@ describe('Disperse', () => {
                 success: true,
             });
 
-            const walltCountAfter = await disperseContract.getWalletCount();
-            console.log(`wallet count after adding: ${walltCountAfter}`);
-
-            expect(walltCountAfter).toBe(walletCountBefore + 1);
         }
 
         let wallets = await disperseContract.getWallets();
+        const result = wallets!.beginParse().loadDictDirect(Dictionary.Keys.BigUint(32), Dictionary.Values.Cell());
         const resultArray = [];
-        while (wallets.remaining) {
-            resultArray.push(wallets.readAddress());
+        let i = 0;
+        while (result.get(BigInt(i))?.beginParse().loadAddress() != null) {
+            resultArray.push(result.get(BigInt(i))?.beginParse().loadAddress());
+            i++;
         }
         console.log(resultArray);
     });

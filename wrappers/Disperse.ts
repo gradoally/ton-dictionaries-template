@@ -63,18 +63,9 @@ export class Disperse implements Contract {
         return result.stack.readAddress();
     }
 
-    async getWalletCount(provider: ContractProvider) {
-        const result = await provider.get('get_wallet_count', []);
-        return result.stack.readNumber();
-    }
-
     async getWallets(provider: ContractProvider) {
         const result = await provider.get('get_wallets', []);
-        return result.stack.readTuple();
+        return result.stack.readCellOpt();
     }
 
-    async getJettonWalletCount(provider: ContractProvider) {
-        const result = await provider.get('get_jetton_wallet_count', []);
-        return result.stack.readNumber();
-    }
 }

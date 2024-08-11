@@ -8,101 +8,103 @@ const op::add_jetton_wallet = "op::add_jetton_wallet"c;
 const op::transfer = "op::transfer"c;
 const op::transfer_jetton = "op::transfer_jetton"c;
 
+global slice sender_address;
+
 global slice ctx_owner_addr;
-global slice ctx_src_jetton_wallet_addr;
-global int ctx_dest_wallet_count;
+global cell ctx_src_jetton_wallet_addr_dict;
 global cell ctx_dest_wallet_addr_dict;
-global int ctx_dest_jetton_wallet_count;
 global cell ctx_dest_jetton_wallet_addr_dict;
 
 () save_data() impure inline {
     ~strdump("Start save_data()");
+
+    cell addr_dict = new_dict();
+
+    addr_dict~udict_set(32, 0, begin_cell().store_dict(ctx_src_jetton_wallet_addr_dict).end_cell().begin_parse());
+    addr_dict~udict_set(32, 1, begin_cell().store_dict(ctx_dest_wallet_addr_dict).end_cell().begin_parse());
+    addr_dict~udict_set(32, 2, begin_cell().store_dict(ctx_dest_jetton_wallet_addr_dict).end_cell().begin_parse());
+
     set_data(
         begin_cell()
             .store_slice(ctx_owner_addr)
-            .store_slice(ctx_src_jetton_wallet_addr)
-            .store_uint(ctx_dest_wallet_count, 32)
-            .store_ref(ctx_dest_wallet_addr_dict)
-            .store_uint(ctx_dest_jetton_wallet_count, 32)
-            .store_ref(ctx_dest_jetton_wallet_addr_dict)
+            .store_dict(addr_dict)
         .end_cell()
     );
     ~strdump("End save_data()");
 }
 
 () load_data() impure {
-    ~strdump("opa_na");
+    ~strdump("check");
     slice ds = get_data().begin_parse();
-    ~strdump("opa_na");
-    ctx_owner_addr = ds~load_msg_addr();
-    ~strdump("opa_na");
-    if (ds.slice_empty?()) { ;; ignore all empty messages
-
-        ctx_src_jetton_wallet_addr = begin_cell().end_cell().begin_parse();
-        ctx_dest_wallet_count = 0;
+    ~strdump("check");
+    if (ds.slice_empty?()) { ;; on deploy
+        ctx_owner_addr = sender_address;
+        ctx_src_jetton_wallet_addr_dict = new_dict();
         ctx_dest_wallet_addr_dict = new_dict();
-        ctx_dest_jetton_wallet_count = 0;
         ctx_dest_jetton_wallet_addr_dict = new_dict();
-
         save_data();
-        
     }
 
-    ;; Wallets
-    ~strdump("opa_na");
-    ctx_dest_wallet_count = ds~load_uint(32);
-    ~strdump("opa_na");
-    if (ctx_dest_wallet_count == 0) {
+    ~strdump("check");
+    ctx_owner_addr = ds~load_msg_addr();
+    ~strdump("check");
+
+    (slice ctx_src_jetton_wallet_addr_dict_cs, int flag) = udict_get?(32, 0);
+
+    if (ds~load_dict().dict_empty?()) {
+        ctx_src_jetton_wallet_addr_dict = new_dict();
+    } else {
+        ctx_src_jetton_wallet_addr_dict = ds~load_dict();
+    }
+    ~strdump("check");
+    if (ds~load_dict().dict_empty?()) {
         ctx_dest_wallet_addr_dict = new_dict();
+    } else {
+        ctx_dest_wallet_addr_dict = ds~load_dict();
     }
-    ~strdump("opa_na");
-    ctx_dest_wallet_addr_dict = ds~load_dict();
-
-    ;; Jetton Wallets
-    ~strdump("opa_na");
-    ctx_dest_jetton_wallet_count = ds~load_uint(32);
-    ~strdump("opa_na");
-    if (ctx_dest_jetton_wallet_count == 0) {
+    ~strdump("check");
+    if (ds~load_dict().dict_empty?()) {
         ctx_dest_jetton_wallet_addr_dict = new_dict();
+    } else {
+        ctx_dest_jetton_wallet_addr_dict = ds~load_dict();
     }
-    ~strdump("opa_na");
-    ctx_dest_jetton_wallet_addr_dict = ds~load_dict();
-    ~strdump("opa_na");
+    ~strdump("check");
     ds.end_parse();
+    ~strdump("check");
 }
 
 () main(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
-
+    ~strdump("1");
     if (in_msg_body.slice_empty?()) { ;; ignore all empty messages
         return ();
     }
-
+    ~strdump("1");
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
     if (flags & 1) { ;; ignore all bounced messages
         return ();
     }
-
+    sender_address = cs~load_msg_addr();
+    ~strdump("1");
+    ;; owner_check
+    ~strdump("1");
     load_data(); ;; here we populate the storage variables
-
+    ~strdump("1");
     int op = in_msg_body~load_uint(32); ;; by convention, the first 32 bits of incoming message is the op
     int query_id = in_msg_body~load_uint(64); ;; also by convention, the next 64 bits contain the "query id", although this is not always the case
-
+    ~strdump("1");
     if (op == op::add_wallet) {
-        
+            ~strdump("1");
         slice new_wallet_addr = in_msg_body~load_msg_addr();
-
+    ~strdump("1");
         (int key, _, int success?) = ctx_dest_wallet_addr_dict.udict_get_max?(32);
         ctx_dest_wallet_addr_dict.udict_add?(32, key, new_wallet_addr);
-        ctx_dest_wallet_count = ctx_dest_wallet_count + 1;
-        
+            ~strdump("1");
         save_data();
         return ();
     }
 
     if (op == op::add_jetton_wallet) {
-
-
         
         save_data();
         return ();
@@ -115,17 +117,7 @@ slice get_owner_addr() method_id {
     return ctx_owner_addr;
 }
 
-int get_wallet_count() method_id {
-    load_data();
-    return ctx_dest_wallet_count;
-}
-
 cell get_wallets() method_id {
     load_data();
     return ctx_dest_wallet_addr_dict;
-}
-
-int get_jetton_wallet_count() method_id {
-    load_data();
-    return ctx_dest_jetton_wallet_count;
 }
