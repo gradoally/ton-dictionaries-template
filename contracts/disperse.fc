@@ -37,11 +37,15 @@ global cell ctx_dest_jetton_wallet_addr_dict;
     ctx_owner_addr = ds~load_msg_addr();
     ~strdump("opa_na");
     if (ds.slice_empty?()) { ;; ignore all empty messages
+
         ctx_src_jetton_wallet_addr = begin_cell().end_cell().begin_parse();
         ctx_dest_wallet_count = 0;
         ctx_dest_wallet_addr_dict = new_dict();
         ctx_dest_jetton_wallet_count = 0;
         ctx_dest_jetton_wallet_addr_dict = new_dict();
+
+        save_data();
+        
     }
 
     ;; Wallets
