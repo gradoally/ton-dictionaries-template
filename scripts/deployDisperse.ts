@@ -4,12 +4,7 @@ import { compile, NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {
     const disperse = provider.open(
-        Disperse.createFromConfig(
-            {
-                owner_addr: provider.sender().address,
-            },
-            await compile('Disperse')
-        )
+        Disperse.createFromConfig(await compile('Disperse'))
     );
 
     await disperse.sendDeploy(provider.sender(), toNano('0.05'));

@@ -9,21 +9,19 @@ const op::transfer = "op::transfer"c;
 const op::transfer_jetton = "op::transfer_jetton"c;
 
 global slice sender_address;
+global cell addr_dict;
 
 global slice ctx_owner_addr;
 global cell ctx_src_jetton_wallet_addr_dict;
 global cell ctx_dest_wallet_addr_dict;
-global cell ctx_dest_jetton_wallet_addr_dict;
 
 () save_data() impure inline {
     ~strdump("Start save_data()");
-
-    cell addr_dict = new_dict();
-
+    addr_dict = new_dict();
+    ~strdump("sd_check");
     addr_dict~udict_set(32, 0, begin_cell().store_dict(ctx_src_jetton_wallet_addr_dict).end_cell().begin_parse());
     addr_dict~udict_set(32, 1, begin_cell().store_dict(ctx_dest_wallet_addr_dict).end_cell().begin_parse());
-    addr_dict~udict_set(32, 2, begin_cell().store_dict(ctx_dest_jetton_wallet_addr_dict).end_cell().begin_parse());
-
+    ~strdump("sd_check");
     set_data(
         begin_cell()
             .store_slice(ctx_owner_addr)
@@ -37,43 +35,32 @@ global cell ctx_dest_jetton_wallet_addr_dict;
     ~strdump("check");
     slice ds = get_data().begin_parse();
     ~strdump("check");
-    if (ds.slice_empty?()) { ;; on deploy
-        ctx_owner_addr = sender_address;
-        ctx_src_jetton_wallet_addr_dict = new_dict();
-        ctx_dest_wallet_addr_dict = new_dict();
-        ctx_dest_jetton_wallet_addr_dict = new_dict();
-        save_data();
-    }
-
-    ~strdump("check");
     ctx_owner_addr = ds~load_msg_addr();
     ~strdump("check");
-
-    (slice ctx_src_jetton_wallet_addr_dict_cs, int flag) = udict_get?(32, 0);
-
-    if (ds~load_dict().dict_empty?()) {
-        ctx_src_jetton_wallet_addr_dict = new_dict();
-    } else {
-        ctx_src_jetton_wallet_addr_dict = ds~load_dict();
-    }
+    addr_dict = ds~load_dict();
     ~strdump("check");
-    if (ds~load_dict().dict_empty?()) {
-        ctx_dest_wallet_addr_dict = new_dict();
-    } else {
-        ctx_dest_wallet_addr_dict = ds~load_dict();
-    }
+    (slice ctx_src_jetton_wallet_addr_dict_cs, int f0) = addr_dict.udict_get?(32, 0);
+    ctx_src_jetton_wallet_addr_dict = ctx_src_jetton_wallet_addr_dict_cs~load_dict();
     ~strdump("check");
-    if (ds~load_dict().dict_empty?()) {
-        ctx_dest_jetton_wallet_addr_dict = new_dict();
-    } else {
-        ctx_dest_jetton_wallet_addr_dict = ds~load_dict();
-    }
+    (slice ctx_dest_wallet_addr_dict_cs, int f1) = addr_dict.udict_get?(32, 1);
+    ctx_dest_wallet_addr_dict = ctx_dest_wallet_addr_dict_cs~load_dict();
     ~strdump("check");
     ds.end_parse();
     ~strdump("check");
 }
 
 () main(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    ~strdump("1");
+    if (ds.slice_empty?()) { ;; on deploy
+        ~strdump("check1");
+        ctx_owner_addr = sender_address;
+        ~strdump("check1");
+        ctx_src_jetton_wallet_addr_dict = new_dict();
+        ~strdump("check1");
+        ctx_dest_wallet_addr_dict = new_dict();
+        ~strdump("check1");
+        save_data();
+    }
     ~strdump("1");
     if (in_msg_body.slice_empty?()) { ;; ignore all empty messages
         return ();

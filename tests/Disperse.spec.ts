@@ -6,11 +6,6 @@ import { compile } from '@ton/blueprint';
 import { time } from 'console';
 
 describe('Disperse', () => {
-    let code: Cell;
-
-    beforeAll(async () => {
-        code = await compile('Disperse');
-    });
 
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
@@ -24,12 +19,7 @@ describe('Disperse', () => {
         deployer = await blockchain.treasury('deployer');
 
         disperseContract = blockchain.openContract(
-            Disperse.createFromConfig(
-                {
-                    owner_addr: deployer.address,
-                },
-                code
-            )
+            Disperse.createFromConfig(await compile('Disperse'))
         );
 
         const deployResult = await disperseContract.sendDeploy(deployer.getSender(), toNano('0.05'));

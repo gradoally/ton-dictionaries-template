@@ -7,16 +7,6 @@ export const Opcodes = {
     transfer_jetton: 0x31733dc2,
 };
 
-export type DisperseConfig = {
-    owner_addr: Address | undefined;
-};
-
-export function disperseConfigToCell(config: DisperseConfig): Cell {
-    return beginCell()
-        .storeAddress(config.owner_addr)
-    .endCell();
-}
-
 export class Disperse implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
 
@@ -24,8 +14,8 @@ export class Disperse implements Contract {
         return new Disperse(address);
     }
 
-    static createFromConfig(config: DisperseConfig, code: Cell, workchain = 0) {
-        const data = disperseConfigToCell(config);
+    static createFromConfig(code: Cell, workchain = 0) {
+        const data = beginCell().endCell();
         const init = { code, data };
         return new Disperse(contractAddress(workchain, init), init);
     }
