@@ -3,6 +3,7 @@
 
 #include "imports/stdlib.fc";
 
+const int op::deploy = 0;
 const op::add_wallet = "op::add_wallet"c;
 const op::add_jetton_wallet = "op::add_jetton_wallet"c;
 const op::transfer = "op::transfer"c;
@@ -34,7 +35,6 @@ global cell ctx_dest_wallet_addr_dict;
 () load_data() impure {
     ~strdump("check");
     slice ds = get_data().begin_parse();
-    ~strdump("check");
     ctx_owner_addr = ds~load_msg_addr();
     ~strdump("check");
     addr_dict = ds~load_dict();
@@ -51,16 +51,6 @@ global cell ctx_dest_wallet_addr_dict;
 
 () main(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
     ~strdump("1");
-    if (ds.slice_empty?()) { ;; on deploy
-        ~strdump("check1");
-        ctx_owner_addr = sender_address;
-        ~strdump("check1");
-        ctx_src_jetton_wallet_addr_dict = new_dict();
-        ~strdump("check1");
-        ctx_dest_wallet_addr_dict = new_dict();
-        ~strdump("check1");
-        save_data();
-    }
     ~strdump("1");
     if (in_msg_body.slice_empty?()) { ;; ignore all empty messages
         return ();
@@ -72,31 +62,42 @@ global cell ctx_dest_wallet_addr_dict;
         return ();
     }
     sender_address = cs~load_msg_addr();
+    int op = in_msg_body~load_uint(32); ;; by convention, the first 32 bits of incoming message is the op
+    if (op == op::deploy) {
+        slice ds = get_data().begin_parse();
+        if (ds.slice_empty?()) { ;; on deploy
+            ~strdump("check1");
+            ctx_owner_addr = sender_address;
+            ~strdump("check1");
+            ctx_src_jetton_wallet_addr_dict = new_dict();
+            ~strdump("check1");
+            ctx_dest_wallet_addr_dict = new_dict();
+            ~strdump("check1");
+            save_data();
+        }
+    }
     ~strdump("1");
     ;; owner_check
     ~strdump("1");
     load_data(); ;; here we populate the storage variables
     ~strdump("1");
-    int op = in_msg_body~load_uint(32); ;; by convention, the first 32 bits of incoming message is the op
     int query_id = in_msg_body~load_uint(64); ;; also by convention, the next 64 bits contain the "query id", although this is not always the case
     ~strdump("1");
     if (op == op::add_wallet) {
-            ~strdump("1");
+        ~strdump("1");
         slice new_wallet_addr = in_msg_body~load_msg_addr();
-    ~strdump("1");
+        ~strdump("1");
         (int key, _, int success?) = ctx_dest_wallet_addr_dict.udict_get_max?(32);
         ctx_dest_wallet_addr_dict.udict_add?(32, key, new_wallet_addr);
             ~strdump("1");
         save_data();
         return ();
     }
-
     if (op == op::add_jetton_wallet) {
         
         save_data();
         return ();
     }
-
 }
 
 slice get_owner_addr() method_id {
