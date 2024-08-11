@@ -1,4 +1,4 @@
-# disperse_dicts
+# Disperse
 
 ## Project structure
 
