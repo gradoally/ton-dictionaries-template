@@ -107,6 +107,7 @@ global cell ctx_dest_wallet_addr_dict;
         ~strdump("Check counter value");
         ~dump(ctx_dest_wallet_addr_counter);
         save_data();
+        ~strdump("Done");
         return ();
     }
     if (op == op::add_jetton_wallet) {

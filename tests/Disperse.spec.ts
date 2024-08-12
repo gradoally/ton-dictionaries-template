@@ -60,15 +60,5 @@ describe('Disperse', () => {
             });
 
         }
-
-        let wallets = await disperseContract.getWallets();
-        const result = wallets!.beginParse().loadDictDirect(Dictionary.Keys.BigUint(32), Dictionary.Values.Cell());
-        const resultArray = [];
-        let i = 0;
-        while (result.get(BigInt(i))?.beginParse().loadAddress() != null) {
-            resultArray.push(result.get(BigInt(i))?.beginParse().loadAddress());
-            i++;
-        }
-        console.log(resultArray);
     });
 });
