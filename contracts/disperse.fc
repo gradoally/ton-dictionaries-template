@@ -18,6 +18,11 @@ global cell ctx_dest_wallet_addr_dict;
 
 () save_data() impure inline {
     ~strdump("Start save_data()");
+    ~dump(ctx_owner_addr);
+    ~dump(src_jetton_wallet_addr_counter);
+    ~dump(ctx_src_jetton_wallet_addr_dict);
+    ~dump(ctx_dest_wallet_addr_counter);
+    ~dump(ctx_dest_wallet_addr_dict);
     set_data(
         begin_cell()
             .store_slice(ctx_owner_addr)
@@ -64,10 +69,10 @@ global cell ctx_dest_wallet_addr_dict;
             ctx_owner_addr = sender_address;
             ~strdump("check1");
             src_jetton_wallet_addr_counter = 0;
-            ctx_src_jetton_wallet_addr_dict = new_dict();
+            ctx_src_jetton_wallet_addr_dict = begin_cell().end_cell();
             ~strdump("check1");
             ctx_dest_wallet_addr_counter = 0;
-            ctx_dest_wallet_addr_dict = new_dict();
+            ctx_dest_wallet_addr_dict = begin_cell().end_cell();
             ~strdump("check1");
             save_data();
         }
@@ -87,15 +92,20 @@ global cell ctx_dest_wallet_addr_dict;
         ~dump(new_wallet_addr);
         ~dump(ctx_dest_wallet_addr_counter);
         if (ctx_dest_wallet_addr_counter == 0) {
+            ~strdump("var1");
             ~dump(ctx_dest_wallet_addr_counter);
+            ~dump(ctx_dest_wallet_addr_counter);
+            ~dump(ctx_dest_wallet_addr_dict);
+            ctx_dest_wallet_addr_dict.udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
             ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
-            ctx_dest_wallet_addr_dict.udict_add?(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
         } else {
+            ~strdump("var2");
             (int a, slice b, int c) = ctx_dest_wallet_addr_dict.udict_get_max?(32);
-            ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
-            (ctx_dest_wallet_addr_dict, int success?) = ctx_dest_wallet_addr_dict.udict_add?(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
+            ctx_dest_wallet_addr_dict.udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
             ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
         }
+        ~strdump("Check counter value");
+        ~dump(ctx_dest_wallet_addr_counter);
         save_data();
         return ();
     }
