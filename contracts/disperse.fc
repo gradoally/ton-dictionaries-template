@@ -9,49 +9,37 @@ const op::transfer = "op::transfer"c;
 const op::transfer_jetton = "op::transfer_jetton"c;
 
 global slice sender_address;
-global cell addr_dict;
 
 global slice ctx_owner_addr;
+global int src_jetton_wallet_addr_counter;
 global cell ctx_src_jetton_wallet_addr_dict;
+global int ctx_dest_wallet_addr_counter;
 global cell ctx_dest_wallet_addr_dict;
 
 () save_data() impure inline {
     ~strdump("Start save_data()");
-    addr_dict = new_dict();
-    ~strdump("sd_check");
-    ~dump(addr_dict);
-    ~dump(ctx_src_jetton_wallet_addr_dict);
-    ~dump(ctx_dest_wallet_addr_dict);
-    ctx_dest_wallet_addr_dict.udict_add?(32, 0, begin_cell().store_uint(1, 32).end_cell().begin_parse());
-    addr_dict~udict_set_ref(32, 0, begin_cell().store_dict(ctx_src_jetton_wallet_addr_dict).end_cell());
-    addr_dict~udict_set_ref(32, 1, begin_cell().store_dict(ctx_dest_wallet_addr_dict).end_cell());
-    ~strdump("sd_check");
     set_data(
         begin_cell()
             .store_slice(ctx_owner_addr)
-            .store_dict(addr_dict)
+            .store_int(src_jetton_wallet_addr_counter, 32)
+            .store_dict(ctx_src_jetton_wallet_addr_dict)
+            .store_int(ctx_dest_wallet_addr_counter, 32)
+            .store_dict(ctx_dest_wallet_addr_dict)
         .end_cell()
     );
     ~strdump("End save_data()");
 }
 
 () load_data() impure {
-    ~strdump("check");
+    ~strdump("Start load_data");
     slice ds = get_data().begin_parse();
     ctx_owner_addr = ds~load_msg_addr();
-    ~strdump("Check addr_dict load");
-    addr_dict = ds~load_dict();
-    ~dump(addr_dict);
-    ~strdump("check");
-    (cell ctx_src_jetton_wallet_addr_dict, int f0) = addr_dict.udict_get_ref?(32, 0);
-    ~dump(ctx_dest_wallet_addr_dict);
-    ~strdump("check00");
-    (cell ctx_dest_wallet_addr_dict, int f1) = addr_dict.udict_get_ref?(32, 1);
-    ~dump(ctx_dest_wallet_addr_dict);
-    slice dict_cs = ctx_dest_wallet_addr_dict.begin_parse();
-    ~dump(dict_cs);
+    src_jetton_wallet_addr_counter = ds~load_uint(32);
+    ifnot (src_jetton_wallet_addr_counter = 0) { ctx_src_jetton_wallet_addr_dict = ds~load_dict(); }
+    ctx_dest_wallet_addr_counter = ds~load_uint(32);
+    ifnot (ctx_dest_wallet_addr_counter = 0) { ctx_dest_wallet_addr_dict = ds~load_dict(); }
     ds.end_parse();
-    ~strdump("check");
+    ~strdump("End load_data");
 }
 
 () main(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -75,12 +63,15 @@ global cell ctx_dest_wallet_addr_dict;
             ~strdump("check1");
             ctx_owner_addr = sender_address;
             ~strdump("check1");
+            src_jetton_wallet_addr_counter = 0;
             ctx_src_jetton_wallet_addr_dict = new_dict();
             ~strdump("check1");
+            ctx_dest_wallet_addr_counter = 0;
             ctx_dest_wallet_addr_dict = new_dict();
             ~strdump("check1");
             save_data();
         }
+        return();
     }
     ~strdump("1");
     ;; owner_check
@@ -94,14 +85,17 @@ global cell ctx_dest_wallet_addr_dict;
         ~strdump("1");
         slice new_wallet_addr = in_msg_body~load_msg_addr();
         ~dump(new_wallet_addr);
-        ~dump(ctx_dest_wallet_addr_dict);
-        ~strdump("Key");
-        (int key, _, int success?) = ctx_dest_wallet_addr_dict.udict_get_max?(32);
-        ~dump(key);
-        ~dump(ctx_dest_wallet_addr_dict);
-        ctx_dest_wallet_addr_dict.udict_add?(32, key, new_wallet_addr);
-        ~dump(ctx_dest_wallet_addr_dict);
-        ~strdump("1");
+        ~dump(ctx_dest_wallet_addr_counter);
+        if (ctx_dest_wallet_addr_counter == 0) {
+            ~dump(ctx_dest_wallet_addr_counter);
+            ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
+            ctx_dest_wallet_addr_dict.udict_add?(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
+        } else {
+            (int a, slice b, int c) = ctx_dest_wallet_addr_dict.udict_get_max?(32);
+            ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
+            (ctx_dest_wallet_addr_dict, int success?) = ctx_dest_wallet_addr_dict.udict_add?(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
+            ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
+        }
         save_data();
         return ();
     }
@@ -110,6 +104,7 @@ global cell ctx_dest_wallet_addr_dict;
         save_data();
         return ();
     }
+    throw(0xffff);
 }
 
 slice get_owner_addr() method_id {
