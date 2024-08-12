@@ -1,7 +1,6 @@
 import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
 
 export const Opcodes = {
-    deploy: 0,
     add_wallet: 0xf6e14824,
     add_jetton_wallet: 0x432ff932,
     transfer: 0x3ee943f1,
@@ -25,7 +24,7 @@ export class Disperse implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().storeUint(Opcodes.deploy, 32).endCell(),
+            body: beginCell().storeUint(0, 32).storeUint(0, 64).endCell(),
         });
     }
 
