@@ -17,7 +17,6 @@ global int ctx_dest_wallet_addr_counter;
 global cell ctx_dest_wallet_addr_dict;
 
 () save_data() impure inline {
-    ~strdump("Start save_data()");
     set_data(
         begin_cell()
             .store_slice(ctx_owner_addr)
@@ -27,11 +26,9 @@ global cell ctx_dest_wallet_addr_dict;
             .store_dict(ctx_dest_wallet_addr_dict)
         .end_cell()
     );
-    ~strdump("End save_data()");
 }
 
 () load_data() impure {
-    ~strdump("Start load_data");
     slice ds = get_data().begin_parse();
     ctx_owner_addr = ds~load_msg_addr();
     src_jetton_wallet_addr_counter = ds~load_uint(32);
@@ -39,7 +36,6 @@ global cell ctx_dest_wallet_addr_dict;
     ctx_dest_wallet_addr_counter = ds~load_uint(32);
     ifnot (ctx_dest_wallet_addr_counter = 0) { ctx_dest_wallet_addr_dict = ds~load_dict(); }
     ds.end_parse();
-    ~strdump("End load_data");
 }
 
 () main(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
@@ -71,12 +67,7 @@ global cell ctx_dest_wallet_addr_dict;
     int query_id = in_msg_body~load_uint(64); ;; also by convention, the next 64 bits contain the "query id", although this is not always the case
     if (op == op::add_wallet) {
         slice new_wallet_addr = in_msg_body~load_msg_addr();
-        ~dump(new_wallet_addr);
-        ~dump(ctx_dest_wallet_addr_counter);
         if (ctx_dest_wallet_addr_counter == 0) {
-            ~dump(ctx_dest_wallet_addr_counter);
-            ~dump(ctx_dest_wallet_addr_counter);
-            ~dump(ctx_dest_wallet_addr_dict);
             ctx_dest_wallet_addr_dict.udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
             ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
         } else {
@@ -84,7 +75,6 @@ global cell ctx_dest_wallet_addr_dict;
             ctx_dest_wallet_addr_dict.udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
             ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
         }
-        ~dump(ctx_dest_wallet_addr_counter);
         save_data();
         return ();
     }
