@@ -1,97 +1,46 @@
-;; Disperse: Being able to send TON to multiples wallets at the same time using an smart contract BUT ALSO jetton tokens. I can also select % instead of amount.
-;; Collect: Being able to collect TON from multiples at the same time and send just to one wallet using an smart contrct but ALSO Jeton tokens using % of the wallet. This should be developed in Rust
-
 #include "imports/stdlib.fc";
-
 const op::add_wallet = "op::add_wallet"c;
-const op::add_jetton_wallet = "op::add_jetton_wallet"c;
+const op::add_jw = "op::add_jw"c;
 const op::transfer = "op::transfer"c;
-const op::transfer_jetton = "op::transfer_jetton"c;
-
+const op::j_transfer = "op::j_transfer"c;
 global slice sender_address;
-
-global slice ctx_owner_addr;
-global int src_jetton_wallet_addr_counter;
-global cell ctx_src_jetton_wallet_addr_dict;
-global int ctx_dest_wallet_addr_counter;
-global cell ctx_dest_wallet_addr_dict;
-
-() save_data() impure inline {
-    set_data(
-        begin_cell()
-            .store_slice(ctx_owner_addr)
-            .store_int(src_jetton_wallet_addr_counter, 32)
-            .store_dict(ctx_src_jetton_wallet_addr_dict)
-            .store_int(ctx_dest_wallet_addr_counter, 32)
-            .store_dict(ctx_dest_wallet_addr_dict)
-        .end_cell()
-    );
-}
-
+global slice owner_addr;
+global cell src_jw_dict;
+global cell dest_jw_dict;
+() save_data() impure inline { set_data(begin_cell()
+    .store_slice(owner_addr)
+    .store_dict(src_jw_dict)
+    .store_dict(dest_jw_dict)
+    .end_cell()); }
 () load_data() impure {
     slice ds = get_data().begin_parse();
-    ctx_owner_addr = ds~load_msg_addr();
-    src_jetton_wallet_addr_counter = ds~load_uint(32);
-    ifnot (src_jetton_wallet_addr_counter = 0) { ctx_src_jetton_wallet_addr_dict = ds~load_dict(); }
-    ctx_dest_wallet_addr_counter = ds~load_uint(32);
-    ifnot (ctx_dest_wallet_addr_counter = 0) { ctx_dest_wallet_addr_dict = ds~load_dict(); }
-    ds.end_parse();
-}
-
+    owner_addr = ds~load_msg_addr(); 
+    src_jw_dict = ds~load_dict(); 
+    dest_jw_dict = ds~load_dict();
+    ds.end_parse(); }
 () main(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
-    if (in_msg_body.slice_empty?()) { ;; ignore all empty messages
-        return ();
-    }
+    if (in_msg_body.slice_empty?()) { return (); }
     slice cs = in_msg_full.begin_parse();
     int flags = cs~load_uint(4);
-    if (flags & 1) { ;; ignore all bounced messages
-        return ();
-    }
+    if (flags & 1) { return (); }
     sender_address = cs~load_msg_addr();
-    int op = in_msg_body~load_uint(32); ;; by convention, the first 32 bits of incoming message is the op
-    if (op == 0) {
-        ~strdump("Start deploy");
-        slice ds = get_data().begin_parse();
-        if (ds.slice_empty?()) { ;; on deploy
-            ctx_owner_addr = sender_address;
-            src_jetton_wallet_addr_counter = 0;
-            ctx_src_jetton_wallet_addr_dict = begin_cell().end_cell();
-            ctx_dest_wallet_addr_counter = 0;
-            ctx_dest_wallet_addr_dict = begin_cell().end_cell();
-            save_data();
-        }
-        return();
-    }
-    ;; owner_check
-    load_data(); ;; here we populate the storage variables
-    int query_id = in_msg_body~load_uint(64); ;; also by convention, the next 64 bits contain the "query id", although this is not always the case
+    int op = in_msg_body~load_uint(32);
+    load_data();
+    int query_id = in_msg_body~load_uint(64);
     if (op == op::add_wallet) {
         slice new_wallet_addr = in_msg_body~load_msg_addr();
         if (ctx_dest_wallet_addr_counter == 0) {
-            ctx_dest_wallet_addr_dict.udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
+            dest_jw_dict~udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
             ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
         } else {
-            (int a, slice b, int c) = ctx_dest_wallet_addr_dict.udict_get_max?(32);
-            ctx_dest_wallet_addr_dict.udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
-            ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1;
-        }
-        save_data();
-        return ();
-    }
-    if (op == op::add_jetton_wallet) {
+            (int a, slice b, int c) = dest_jw_dict.udict_get_max?(32);
+            dest_jw_dict~udict_set(32, ctx_dest_wallet_addr_counter, new_wallet_addr);
+            ctx_dest_wallet_addr_counter = ctx_dest_wallet_addr_counter + 1; }
+        save_data(); return (); }
+    if (op == op::add_jw) {
         
-        save_data();
-        return ();
-    }
-    throw(0xffff);
-}
-
-slice get_owner_addr() method_id {
-    load_data();
-    return ctx_owner_addr;
-}
-
-cell get_wallets() method_id {
-    load_data();
-    return ctx_dest_wallet_addr_dict;
-}
+        save_data(); return (); }
+    throw(0xffff); }
+slice get_owner_addr() method_id { load_data(); return owner_addr; }
+cell get_wallets() method_id { load_data(); return dest_jw_dict; }
+slice get_wallet_by_index(int index) method_id { load_data(); (slice cs, int s?) = dest_jw_dict.udict_get?(32, index); return cs; }
