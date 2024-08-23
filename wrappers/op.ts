@@ -2,14 +2,10 @@ const a_table = "00000000 77073096 EE0E612C 990951BA 076DC419 706AF48F E963A535 
 const b_table = a_table.split(' ').map(function (s) { return parseInt(s, 16); });
 export function crc32(str: string) {
     let crc = -1;
-    for (let i = 0, iTop = str.length; i < iTop; i++) {
-        crc = (crc >>> 8) ^ b_table[(crc ^ str.charCodeAt(i)) & 0xFF];
-    }
-    return (crc ^ (-1)) >>> 0;
-};
+    for (let i = 0, iTop = str.length; i < iTop; i++) { crc = (crc >>> 8) ^ b_table[(crc ^ str.charCodeAt(i)) & 0xFF]; }
+    return (crc ^ (-1)) >>> 0; };
 export const Op = {
     add_w: crc32('add_w'),
     add_jw: crc32('add_jw'),
     transfer: crc32('transfer'),
-    j_transfer: crc32('j_transfer'),
-};
+    j_transfer: crc32('j_transfer'), };
