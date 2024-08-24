@@ -1,22 +1,25 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
-
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, Dictionary } from '@ton/core';
 export const Op = {
-    add_w: 0xf6e14824,
-    add_jw: 0x432ff932,
-    transfer: 0x3ee943f1,
-    j_transfer: 0x31733dc2,
-};
-
+    add_w: 0,
+    add_jw: 1,
+    transfer: 2,
+    j_transfer: 4, };
+export type Vars = { OwnerAddress: Address, };
+export function VarsToCell(vars: Vars): Cell { return beginCell()
+    .storeAddress(vars.OwnerAddress)
+    .storeDict(Dictionary.empty(Dictionary.Keys.BigInt(32), Dictionary.Values.Address()))
+    .storeDict(Dictionary.empty(Dictionary.Keys.BigInt(32), Dictionary.Values.Address()))
+    .endCell(); }
 export class Disperse implements Contract {
     constructor(readonly address: Address, readonly init?: { code: Cell; data: Cell }) {}
     static createFromAddress(address: Address) { return new Disperse(address); }
-    static createFromConfig(code: Cell, workchain = 0) {
-        const data = beginCell().endCell();
+    static createFromConfig(vars: Vars, code: Cell, workchain = 0) {
+        const data = VarsToCell(vars);
         const init = { code, data };
         return new Disperse(contractAddress(workchain, init), init); }
     async sendDeploy(provider: ContractProvider, via: Sender, value: bigint) { await provider.internal(via, {
         value, sendMode: SendMode.PAY_GAS_SEPARATELY,
-        body: beginCell().storeUint(0, 32).storeUint(0, 64).endCell(), }); }
+        body: beginCell().endCell(), }); }
     async sendAddWallet(provider: ContractProvider,
         via: Sender, wallet_addr: Address, value: bigint, queryID?: number,
         ) { await provider.internal(via, {
