@@ -1,8 +1,6 @@
 # Disperse
 
-Disperse: Being able to send TON to multiples wallets at the same time using an smart contract BUT ALSO jetton tokens. I can also select % instead of amount.
-
-Collect: Being able to collect TON from multiples at the same time and send just to one wallet using an smart contrct but ALSO Jeton tokens using % of the wallet. This should be developed in Rust
+Basic implementation of Dictionaries manipulation. Able to write-in to a dictionary by internal messages and parse it on the frontend side and display to console. Usefull foundation for dictionaries manipulation.
 
 ## Project structure
 
